@@ -1,0 +1,219 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Priya's AI Assistant 🤖</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #2D0444;
+      color: #f0f0f0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .main-container {
+      display: flex;
+      height: 100%;
+    }
+
+    .left-side {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: transparent;
+    }
+
+    .left-side img {
+      width: 90%;
+      max-width: 500px;
+      height: auto;
+    }
+
+    .right-side {
+      flex: 1;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .chat-box {
+      background: linear-gradient(to right,#2D0444, #5604a3);
+      border-radius: 15px;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 500px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+
+    button {
+      padding: 0.7rem 1.2rem;
+      align-content: center;
+      background-color: #7f4ff7;
+      border: none;
+      border-radius: 10px;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+
+    .loader {
+      display: none;
+      margin: 1rem auto;
+      border: 6px solid #ccc;
+      border-top: 6px solid #281783;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+    }
+
+    .response, .code {
+      background: #111;
+      padding: 1rem;
+      margin-top: 1rem;
+      border-radius: 10px;
+      font-family: monospace;
+      color: #a4dcfe;
+    }
+
+    .loader {
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .loader img {
+      width: 60px;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    audio {
+      margin-top: 1rem;
+      width: 100%;
+    }
+
+    @keyframes float {
+      0%   { transform: translateY(0px); }
+      50%  { transform: translateY(-20px); }
+      100% { transform: translateY(0px); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.7; transform: scale(1); }
+      50%      { opacity: 1; transform: scale(1.1); }
+    }
+
+    @media (max-width: 768px) {
+      .main-container {
+        flex-direction: column;
+        overflow-y: auto;
+      }
+      .left-side {
+        padding: 1rem;
+      }
+      .right-side {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="main-container">
+  <!-- 🧠 Animated Bot Side -->
+  <div class="left-side">
+    <img src="{% static 'Chat bot (5).gif' %}" alt="AI Bot">
+  </div>
+
+  <!-- Chat Side -->
+  <div class="right-side">
+    <h1>Coding starburst</h1>
+    <div class="chat-box">
+      <button onclick="startRecording()">Tap to Talk</button>
+
+      <div class="loader" id="loader">
+      </div>
+
+      <div class="response" id="transcript" style="display:none;"></div>
+      <div class="code" id="code" style="display:none;"></div>
+      <audio id="audio" controls style="display:none;"></audio>
+    </div>
+  </div>
+</div>
+
+<script>
+  let mediaRecorder;
+  let audioChunks = [];
+
+  async function startRecording() {
+    const loader = document.getElementById("loader");
+    loader.style.display = "block";
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.start();
+    audioChunks = [];
+
+    mediaRecorder.addEventListener("dataavailable", event => {
+      audioChunks.push(event.data);
+    });
+
+    mediaRecorder.addEventListener("stop", () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "voice.wav");
+
+      fetch("/process_audio/", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("transcript").style.display = "block";
+        document.getElementById("code").style.display = "block";
+        document.getElementById("audio").style.display = "block";
+
+        document.getElementById("transcript").textContent = "🗣️ You said: " + data.transcript;
+        document.getElementById("code").textContent = data.code;
+        document.getElementById("audio").src = data.audio_url;
+
+        loader.style.display = "none";
+      })
+      .catch(err => {
+        alert("Error: " + err);
+        loader.style.display = "none";
+      });
+    });
+
+    setTimeout(() => {
+      mediaRecorder.stop();
+    }, 4000); // ⏱️ 4 seconds
+  }
+</script>
+
+</body>
+</html>

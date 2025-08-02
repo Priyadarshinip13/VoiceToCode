@@ -1,0 +1,9 @@
+<h2>🗣️ You said:</h2>
+<p>{{ user_text }}</p>
+<h2>🤖 AI Reply:</h2>
+<p>{{ bot_reply }}</p>
+<h2>🔊 In Your Cloned Voice:</h2>
+<audio controls>
+  <source src="{{ voice_output }}" type="audio/wav">
+</audio>
+<a href="{% url 'index' %}">Try Again</a>

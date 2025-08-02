@@ -1,0 +1,36 @@
+<button onclick="startRecording()">Start</button>
+<button onclick="stopRecording()">Stop</button>
+<audio id="player" controls></audio>
+
+<script>
+let recorder, audioStream;
+
+async function startRecording() {
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recorder = new MediaRecorder(audioStream);
+    const audioChunks = [];
+
+    recorder.ondataavailable = e => audioChunks.push(e.data);
+
+    recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'input.wav');
+
+        const response = await fetch('/process_audio/', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.blob();
+        document.getElementById("player").src = URL.createObjectURL(data);
+    };
+
+    recorder.start();
+}
+
+function stopRecording() {
+    recorder.stop();
+    audioStream.getTracks().forEach(track => track.stop());
+}
+</script>
