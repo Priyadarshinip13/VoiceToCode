@@ -35,7 +35,7 @@ def index_view(request):
             result = model.transcribe(temp_path, fp16=False)
             user_text = result.get('text', '').strip()
 
-        print("🗣️ Input text:", user_text)
+        print("Input text:", user_text)
 
         if not user_text:
             return HttpResponse("Couldn't understand input", status=400)
