@@ -5,11 +5,15 @@ import whisper
 import tempfile
 import os
 import uuid
-import pyttsx3
+from elevenlabs import ElevenLabs
 import google.generativeai as genai
 
-# Set Gemini API key
+# 🔹 Set Gemini API Key
 genai.configure(api_key="AIzaSyD6xOl2X1Gqdcqk75CejQSJlORQfm4Ug38")
+
+# 🔹 ElevenLabs API Key
+ELEVEN_API_KEY = "sk_f35dac392830ae99fe8d0ea9d77cd9be3e6521b518906ffd"
+tts_client = ElevenLabs(api_key=ELEVEN_API_KEY)
 
 @csrf_exempt
 def index_view(request):
@@ -41,8 +45,11 @@ def index_view(request):
             return HttpResponse("Couldn't understand input", status=400)
 
         # 🤖 Generate code using Gemini
-        prompt = (f"Write a user specified programming language code for this: {user_text}. After that, explain should be simple(10 line points explainatio each line should not increase 7 words) with clean code the code line-by-line in a human-friendly way. "
-        f"Use 'Explanation:' before the explanation section."
+        prompt = (
+            f"Write a user specified programming language code for this: {user_text}. "
+            f"After that, explain should be simple (10 line points explanation, each line ≤ 7 words) "
+            f"with clean code explained line-by-line in a human-friendly way. "
+            f"Use 'Explanation:' before the explanation section."
         )
         gemini_model = genai.GenerativeModel(model_name="gemini-2.5-flash-lite")
         response = gemini_model.generate_content(prompt)
@@ -54,14 +61,19 @@ def index_view(request):
         explanation_start = bot_reply.rfind("\n\n")
         explanation = bot_reply[explanation_start:].strip() if explanation_start != -1 else bot_reply
 
-        # 🎧 Speak explanation
-        tts = pyttsx3.init()
-        tts.setProperty('rate', 160)
+        # 🎧 Speak explanation with ElevenLabs
         audio_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.mp3")
-        tts.save_to_file(explanation, audio_path)
-        tts.runAndWait()
-        print("🔊 Voice saved:", audio_path)
+        audio_stream = tts_client.text_to_speech.convert(
+        voice_id="yM93hbw8Qtvdma2wCnJG",  # Replace with your actual Voice ID
+        model_id="eleven_multilingual_v2",
+        text=explanation
+        )
 
+        with open(audio_path, "wb") as f:
+            for chunk in audio_stream:
+                f.write(chunk)
+
+        print("🔊 Voice saved:", audio_path)
         audio_url = f"/audio/{os.path.basename(audio_path)}"
 
         return JsonResponse({
@@ -72,8 +84,6 @@ def index_view(request):
 
     return render(request, 'index.html')
 
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
 
 @csrf_exempt
 def run_code_view(request):
@@ -82,10 +92,10 @@ def run_code_view(request):
             code = request.POST.get("code", "")
             local_vars = {}
 
-            # ⚠️ Be cautious! `exec()` is risky.
+            # ⚠️ Be cautious! `exec()` can be dangerous.
             exec(code, {}, local_vars)
 
-            # Capture output if any (basic)
+            # Capture output if any
             output = ""
             if "_result" in local_vars:
                 output = str(local_vars["_result"])
