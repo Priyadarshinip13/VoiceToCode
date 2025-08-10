@@ -41,7 +41,7 @@ def index_view(request):
             return HttpResponse("Couldn't understand input", status=400)
 
         # 🤖 Generate code using Gemini
-        prompt = (f"Write Python code for this: {user_text}. After that, explain the code line-by-line in a human-friendly way. "
+        prompt = (f"Write a user specified programming language code for this: {user_text}. After that, explain should be simple(10 line points explainatio each line should not increase 7 words) with clean code the code line-by-line in a human-friendly way. "
         f"Use 'Explanation:' before the explanation section."
         )
         gemini_model = genai.GenerativeModel(model_name="gemini-2.5-flash-lite")
